@@ -22,17 +22,17 @@ There are 3 iterations on the definition of causality: Halpern-Pearl (2001), Hal
 To test if variable(s) X (a list) is a cause of some outcome you simply call causality_check, updated_causality_check, or modified_causality_check respectively. Note #1: These are instance methods.
 
 Note #2:
--X refers to a list containing the values for the variables of interest (e.g. [True])
--X_indices refer to a list of their indices in V. (e.g. [0])
--num_outcome_var: refers to the index of the outcome variable in V
--outcome_val = expected outcome value (True or False)
--fast: a boolean flag which (if True) tells the analysis to halt early (if the definition is satisfied) or (if False) search the whole space of paths to causality
+- X refers to a list containing the values for the variables of interest (e.g. [True])
+- X_indices refer to a list of their indices in V. (e.g. [0])
+- num_outcome_var: refers to the index of the outcome variable in V
+- outcome_val = expected outcome value (True or False)
+- fast: a boolean flag which (if True) tells the analysis to halt early (if the definition is satisfied) or (if False) search the whole space of paths to causality
 
 ## Responsibility Attribution
 Most of our research concerned the responsibility attribution function and we played around with different definitions.
 Within this section you will find the following functions:
 - responsibility: This function computes the responsibility of variable X on outcome Y using Chockler & Halpern's definition of responsibility (2004)
--influence: This computes the boolean influence of a variable (doesn't require causality)
+- influence: This computes the boolean influence of a variable (doesn't require causality)
 - zultan_responsibility: This function uses the definition of responsibility, based on multiple paths to pivotality, defined in the paper *Finding fault: Causality and counterfactuals in group attributions* by Zultan, Gerstenberg, Lagnado (2012). Warning: the description of this model is somewhat ambiguous and I believe that's why many of further testing did not match the paper's results. Unfortunately, they did not code the model.
 
 Note: the same variables -> meanings, from the Causal Analysis section, hold here.
