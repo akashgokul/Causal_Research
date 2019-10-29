@@ -32,4 +32,4 @@ Within this section you will find the following functions:
 -influence: This computes the boolean influence of a variable (doesn't require causality)
 - zultan_responsibility: This function uses the definition of responsibility defined in the paper Multiple Counterfactual Pivotality model by Zultan, Gerstenberg, Lagnado (2012). Warning: the description of this model is somewhat ambiguous and I believe that's why many of further testing did not match the paper's results. Unfortunately, they did not code the model.
 
-Note 1: the same variables -> meanings, from the Causal Analysis section, hold here.
+Note: the same variables -> meanings, from the Causal Analysis section, hold here.
