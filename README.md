@@ -30,6 +30,6 @@ Most of our research concerned the responsibility attribution function and we pl
 Within this section you will find the following functions:
 - responsibility: This function computes the responsibility of variable X on outcome Y using Chockler & Halpern's definition of responsibility (2004)
 -influence: This computes the boolean influence of a variable (doesn't require causality)
-- zultan_responsibility: This function uses the definition of responsibility defined in the paper Multiple Counterfactual Pivotality model by Zultan, Gerstenberg, Lagnado (2012). Warning: the description of this model is somewhat ambiguous and I believe that's why many of further testing did not match the paper's results. Unfortunately, they did not code the model.
+- zultan_responsibility: This function uses the definition of responsibility, based on multiple paths to pivotality, defined in the paper *Finding fault: Causality and counterfactuals in group attributions* by Zultan, Gerstenberg, Lagnado (2012). Warning: the description of this model is somewhat ambiguous and I believe that's why many of further testing did not match the paper's results. Unfortunately, they did not code the model.
 
 Note: the same variables -> meanings, from the Causal Analysis section, hold here.
