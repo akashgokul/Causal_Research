@@ -25,7 +25,7 @@ Note #2: -X refers to a list containing the values for the variables of interest
 -outcome_val = expected outcome value (True or False)
 -fast: a boolean flag which (if True) tells the analysis to halt early (if the definition is satisfied) or (if False) search the whole space of paths to causality
 
-##Responsibility Attribution
+## Responsibility Attribution
 Most of our research concerned the responsibility attribution function and we played around with different definitions.
 Within this section you will find the following functions:
 - responsibility: This function computes the responsibility of variable X on outcome Y using Chockler & Halpern's definition of responsibility (2004)
