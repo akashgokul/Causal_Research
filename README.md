@@ -19,7 +19,9 @@ A CausalModel is an instance of said class that has the attributes mentioned abo
 ## Causal Analysis:
 There are 3 iterations on the definition of causality: Halpern-Pearl (2001), Halpern-Pearl (2005), Halpern-Pearl (2014)
 
-To test if variable(s) X (a list) is a cause of some outcome you simply call causality_check, updated_causality_check, or modified_causality_check respectively. Note #1: These are instance methods.
+To test if variable(s) X (a list) is a cause of some outcome you simply call causality_check, updated_causality_check, or modified_causality_check respectively.
+
+Note #1: These are instance methods.
 
 Note #2:
 - X refers to a list containing the values for the variables of interest (e.g. [True])
@@ -35,4 +37,4 @@ Within this section you will find the following functions:
 - influence: This computes the boolean influence of a variable (doesn't require causality)
 - zultan_responsibility: This function uses the definition of responsibility, based on multiple paths to pivotality, defined in the paper *Finding fault: Causality and counterfactuals in group attributions* by Zultan, Gerstenberg, Lagnado (2012). Warning: the description of this model is somewhat ambiguous and I believe that's why many of further testing did not match the paper's results. Unfortunately, they did not code the model.
 
-Note: the same variables -> meanings, from the Causal Analysis section, hold here.
+Note: the same variable to meaning mapping, from the Causal Analysis section, hold here.
