@@ -18,8 +18,11 @@ A CausalModel is an instance of said class that has the attributes mentioned abo
 
 ## Causal Analysis:
 There are 3 iterations on the definition of causality: Halpern-Pearl (2001), Halpern-Pearl (2005), Halpern-Pearl (2014)
+
 To test if variable(s) X (a list) is a cause of some outcome you simply call causality_check, updated_causality_check, or modified_causality_check respectively. Note #1: These are instance methods.
-Note #2: -X refers to a list containing the values for the variables of interest (e.g. [True])
+
+Note #2:
+-X refers to a list containing the values for the variables of interest (e.g. [True])
 -X_indices refer to a list of their indices in V. (e.g. [0])
 -num_outcome_var: refers to the index of the outcome variable in V
 -outcome_val = expected outcome value (True or False)
