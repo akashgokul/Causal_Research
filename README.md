@@ -1,6 +1,6 @@
 # Causal Library
 ### This repository is a collection of functions defining causation of a variable and the responsibility of a variable within a given model.
-#### The python file: causality_and_responsibility.py contains all these functions and has comments to understand each function. The iPython Notebook was simply used for testing purposes.
+#### The python file: causality_and_responsibility.py contains all these functions and has comments to understand each function. The iPython Notebooks were simply used for testing purposes.
 
 ## Syntax
 A model consists of the following elements:

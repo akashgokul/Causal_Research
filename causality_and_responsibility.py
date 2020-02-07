@@ -1,74 +1,17 @@
-##Helper functions
+from utils import *
+import numpy as np
 
-#Updates endogenous variables (V) given a certain state X,W
-#i.e. sets to True/False given X or W
-def V_given_set(V,X_or_W,indices):
-    updated_V = V.copy()
-    var_seen = 0
-    for i in range(len(V)):
-        if i in indices:
-            updated_V[i] = X_or_W[var_seen]
-            var_seen += 1
-    return updated_V
-#Goes through dictionary makes sure no repeat elements
-def prune(dct):
-    for key in dct.keys():
-        curr_lst = dct[key]
-        seen = []
-        for elem in curr_lst:
-            if elem not in seen:
-                seen.append(elem)
-        dct[key] = seen
-    return dct
-#Creates a list of all subsets (cardinality >= 1) of a given lst
-#Used https://bit.ly/2YVGYxt
-def subsets_finder(indices):
-    #indices corresp. to elem of some lst opposed to using indices corresp to V.
-    n = len(indices)
-    if(n < 1):
-        return indices
-    else:
-        subsets = []
-        for i in range(n+1):
-            subset = list(itertools.combinations(indices, i))
-            subsets += [sub for sub in subset]
-        return subsets
-
-#returns list of all possible splits(take indices finds all )
-#Used: https://bit.ly/2KfTeFk
-def partitions(indices):
-    if(len(indices) == 0):
-        return [([],[])]
-    subsets = [v for a in range(len(indices)) for v in itertools.combinations(indices, a)]
-    comb = []
-    for i in range(len(subsets)//2 + 1):
-        comb.append((list(itertools.chain(subsets[i])), [e for e in indices if e not in subsets[i]]))
-    ret_lst = comb + [(tup[1],tup[0]) for tup in comb]
-    return ret_lst
-
-#Given certain indices, updates lst[i] = not lst[i] for i in indices
-def negate_var(lst,indices):
-    return_lst = lst.copy()
-    for i in range(len(lst)):
-        if(i in indices):
-            return_lst[i] = not lst[i]
-    return return_lst
-
-#Extracts given elements from X using t
-def extract_X(X,t):
-    return_lst = []
-    for i in t:
-        return_lst.append(X[i])
-    return return_lst
-
-
-#Created a class of original H.P defn of Causality
 class Causal_Model:
-    #U,V,F are assumed to be lists for simplicity sake
-    #Assumed that final var = outcome (e.g. last elem of V = Forest Fire)
-    #U,V are boolean values corresp. to some list of var
-    #F is a list of pointers to functions (e.g. def foo())
     def __init__(self, U, V, R, F):
+        """
+        Inputs: U: list of values of exogenous variables
+                V: list of values of endogenous variables
+                R: list of range of each variable (we deal with (True, False))
+                F: list of functions corresponding to each variable in V
+
+        Note: All variables are boolean valued. We assume the final variable of V is the outcome.
+
+        """
         self.exogenous_var = U
         self.endogenous_var = V
         self.var_range = R
@@ -77,20 +20,41 @@ class Causal_Model:
         self.model = (self.signature,F)
 
 
+    def ac1_check(self,X,X_indices,outcome_function,outcome_val):
+        """
+        Input: X: list of values for the desired input
+               X_indices: Indices of X within the self.V (list of endogenous variables)
+               Outcome_function: outcome function
+               Outcome_val: Desired outcome check
 
-    # For the following, I assume that this can be used to check causality if an outcome did not occur(?)
+        Note: This is AC1 condition from original Halper-Pearl definition.
+        It checks that the desired outcome actually occurs for a given state of X
 
-    #AC1 of defn, checks if outcome = function for given X
-    #outcome_val refers to desired outcome
-    def ac1_check(self,X,X_indices,outcome_function=self.F,outcome_val):
+        Returns: True/False correponding to whether or not these X variables lead to outcome_val
+        when put into the outcome_funtion.
+
+        """
         V = V_given_set(self.endogenous_var,X,X_indices)
         outcome_given_X = outcome_function(self.exogenous_var,V)
         return outcome_given_X == outcome_val
 
-    #AC2(a) checks the but-for clause, i.e changing X would lead to opposite outcome
-    #2005 paper says W->w' but modified defn. paper says W->w, func is using the latter
-    #This function finds the correct W, and calls ac2_b
-    def ac2_a_check(self,Z,Z_indices,X,X_indices,W,W_indices,outcome_function=self.F,outcome_val):
+    def ac2_a_check(self,Z,Z_indices,X,X_indices,W,W_indices,outcome_function,outcome_val):
+        """
+        Input: Z: A list of variable settings where the variables are in V and X ⊆ Z
+                Z_indices: (list) Indices of Z variables, where these indices correspond to indices in self.V
+                X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                W: Variables values for the complementary set to Z
+                W_indices: (list) Indices of W variables in self.V
+                Outcome_function: Function that determines outcome given self.U and self.V
+                Outcome_val: Desired outcome val/setting to test
+
+        Note: This is the AC2(a) check of the original and updated HP definitions. It essentially checks but-for,
+        i.e if X is set to the opposite value would the outcome still have happened?
+
+        Returns: True/False corresponding to whether the outcome would differ from outcome_val if each x = not x
+
+        """
         V = V_given_set(self.endogenous_var,Z,Z_indices)
         V = V_given_set(V,W,W_indices)
         x_prime = [not i for i in X]
@@ -102,9 +66,23 @@ class Causal_Model:
             return False
 
 
-    #Checks AC2(b) of the defn
-    #Checks that outcome holds for all subsets of Z (Z') if Z' is set to original value
-    def ac2_b_check(self,Z,Z_indices,X,X_indices,W,W_indices,outcome_function=self.F, outcome_val):
+    def ac2_b_check(self,Z,Z_indices,X,X_indices,W,W_indices,outcome_function, outcome_val):
+        """
+        Input: Z: A list of variable settings where the variables are in V and X ⊆ Z
+                Z_indices: (list) Indices of Z variables, where these indices correspond to indices in self.V
+                X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                W: Variables values for the complementary set to Z
+                W_indices: (list) Indices of W variables in self.V
+                Outcome_function: Function that determines outcome given self.U and self.V
+                Outcome_val: Desired outcome val/setting to test
+
+        Note: This checks AC2(b) of the HP definitions.
+        This checks that the outcome occurs even if any subset of Z is set to the actual values from the experiment.
+
+        Returns: True/False if condiion is met
+
+        """
         V = self.endogenous_var
         V_fixed_W = V_given_set(V,W,W_indices)
         V = V_given_set(V_fixed_W,X,X_indices)
@@ -118,9 +96,24 @@ class Causal_Model:
                 return False
         return True
 
-    #Checks AC2(b^u) of the defn
-    #Checks that outcome holds for all subsets of W (W') and Z(Z') if W',Z' is set to original value
-    def ac2_b_u_check(self,Z,Z_indices,X,X_indices,W,W_indices,outcome_function=self.F, outcome_val):
+    def ac2_b_u_check(self,Z,Z_indices,X,X_indices,W,W_indices,outcome_function, outcome_val):
+        """
+        Input: Z: A list of variable settings where the variables are in V and X ⊆ Z
+                Z_indices: (list) Indices of Z variables, where these indices correspond to indices in self.V
+                X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                W: Variables values for the complementary set to Z
+                W_indices: (list) Indices of W variables in self.V
+                Outcome_function: Function that determines outcome given self.U and self.V
+                Outcome_val: Desired outcome val/setting to test
+
+        Note: This checks AC2(b^u) from the updated HP definition.
+        This checks that the outcome occurs even if any subset of Z is set to its values in the experiment
+        AND any subset of W set to the given values W satisfy the outcome
+
+        Returns: True/False if condition is met
+
+        """
         V = self.endogenous_var
         orig_Z = [V[i] for i in Z_indices]
         orig_W = [V[i] for i in W_indices]
@@ -140,7 +133,22 @@ class Causal_Model:
     #Returns true if ac2_a^m is satisfied
     #Also gives the coresp. W,W_indices that satisfy the defn
     #Output: [W, W_indices, T/F]
-    def ac2_m_check(self,X,X_indices,outcome_function=self.F,outcome_val):
+    def ac2_m_check(self,X,X_indices,outcome_function,outcome_val):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Outcome_function: Function that determines outcome given self.U and self.V
+                Outcome_val: Desired outcome val/setting to test
+
+        Note: This checks and finds the satisfying sets for AC2(m) from modified HP definition.
+        Specifically, ensures that there is a set W, as defined in func above,
+        s.t. W is set to the same settings of self.V and there is a setting of X called x''
+        s.t. that outcome given W and X = x' is the opposite of the outcome_val
+
+        Returns: [W, W_indices, T/F]: Where W and W_indices is the list that satisfy the definition.
+        T/F correspond to whether there is any W that satisfies AC2(m).
+
+        """
         V = self.endogenous_var
         V_indices_excluding_X = [i for i in range(len(V)) if i not in X_indices]
         potential_W_indices = subsets_finder(V_indices_excluding_X)
@@ -157,7 +165,7 @@ class Causal_Model:
 
         return [None,None,False]
 
-    def ac2_check_given_Z_W(self,Z,Z_indices,X,X_indices,W,W_indices,outcome_function=self.F,outcome_val):
+    def ac2_check_given_Z_W(self,Z,Z_indices,X,X_indices,W,W_indices,outcome_function,outcome_val):
         ac2_a = self.ac2_a_check(Z,Z_indices,X,X_indices,W,W_indices,outcome_function,outcome_val)
         ac2_b = self.ac2_b_check(Z,Z_indices,X,X_indices,W,W_indices,outcome_function,outcome_val)
         if(ac2_a and ac2_b):
@@ -165,7 +173,7 @@ class Causal_Model:
         else:
             return False
 
-    def ac2_u_check_given_Z_W(self,Z,Z_indices,X,X_indices,W,W_indices,outcome_function=self.F,outcome_val):
+    def ac2_u_check_given_Z_W(self,Z,Z_indices,X,X_indices,W,W_indices,outcome_function,outcome_val):
         ac2_a = self.ac2_a_check(Z,Z_indices,X,X_indices,W,W_indices,outcome_function,outcome_val)
         ac2_b = self.ac2_b_u_check(Z,Z_indices,X,X_indices,W,W_indices,outcome_function,outcome_val)
         if(ac2_a and ac2_b):
@@ -174,13 +182,21 @@ class Causal_Model:
             return False
 
 
-    #Goes through all partitions of V (partitions named Z,W) and returns the first Z,W to satisfy
-    #defn is an int(0,1) corresp to (original def, updated defn ('05))
-    #Returns a dictionary of num_changes (from model to causal scenario) -> (corresp causal scenario's W)
-    # If W_dct is empty => ac2 failed
-    #If fast => return after finding first W that works
-    #Incorporates num_outcomes to avoid putting outcome in W
-    def Z_and_W_search(self,X,X_indices,outcome_function=self.F,outcome_val,defn,num_outcomes,fast):
+    def Z_and_W_search(self,X,X_indices,outcome_function,outcome_val,defn,num_outcomes,fast):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Defn: {0,1} integer referring to original or updated definition respectively.
+                Outcome_function: Function that determines outcome given self.U and self.V
+                Outcome_val: Desired outcome val/setting to test
+                Fast: T/F corresponding whether to return after finding the first Z,W to satisfy
+
+        Note: This function finds the Z and W that satisfy AC2.
+
+        Returns: A dictionary of satisfying W. Keys: num_changes from original values of V | Value: W, W_indices
+        If dictionary is empty => AC2 Failed
+
+        """
         V = self.endogenous_var
         V_var = len(V)
         outcome_indices = [V_var-(i+1) for i in range(num_outcomes)]
@@ -234,11 +250,19 @@ class Causal_Model:
         return W_dct
 
 
+    def ac3_check(self,X,X_indices,outcome_function,outcome_val):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Outcome_function: Function that determines outcome given self.U and self.V
+                Outcome_val: Desired outcome val/setting to test
 
+        Note: This function checks the AC3 condition, which checks that X is minimal by iterating over all
+        subsets of X.
 
+        Returns: T/F corresponding to whether AC3 is satisfied
 
-    #Checks that X is minimal by iterating over all subsets
-    def ac3_check(self,X,X_indices,outcome_function=self.F,outcome_val):
+        """
         if(len(X) <= 1):
             return True
         subsets_of_X = subsets_finder(X_indices)
@@ -253,9 +277,22 @@ class Causal_Model:
 
         return True
 
-    #Finding paths to the model s.t. X is pivotal
-    #(I'm writing this b/c using W generated for zultan is having problems due to multitude of Z,W pairs)
-    def paths_to_pivotality(self,X,X_indices,outcome_val,outcome_func=self.F,num_outcomes):
+    def paths_to_pivotality(self,X,X_indices,outcome_val,outcome_func,num_outcomes=1):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Outcome_val: Desired outcome val/setting to test
+                Outcome_function: Function that determines outcome given self.U and self.V
+                Num_outcomes: Number of outcomes (sometimes there are mutiple outcomes)
+
+        Note: This function is part of the Zultan model of responsibility (https://www.ncbi.nlm.nih.gov/pubmed/23855451)
+        It returns all the cases where X is pivotal, i.e. states where changing the value of X would change the outcome.
+
+        Returns: A list of tuples
+                tup[0] = number of variables changed
+                tup[1] = endogenous state for 1 valid path
+
+        """
         V = self.endogenous_var
         V_no_X_indx = [i for i in range(len(V)) if i not in X_indices]
         V_no_X = [V[i] for i in V_no_X_indx]
@@ -283,8 +320,10 @@ class Causal_Model:
                 paths.append((len(setting),curr_V))
         return paths
 
-    #Fail checking
     def wrong_check(self,ac_1,ac_2,ac_3):
+        """
+        Prints which condition failed
+        """
         if (not ac_1):
             print("(False b/c of AC1)")
         if(not ac_2):
@@ -292,8 +331,20 @@ class Causal_Model:
         if(not ac_3):
             print("(False b/c of AC3)")
 
-    #Returns true if X satisfies HP defn, False o.w.
-    def causality_check(self,X,X_indices,outcome_val,outcome_func=self.F,num_outcomes,fast):
+    def causality_check(self,X,X_indices,outcome_val,outcome_func,num_outcomes,fast):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Outcome_val: Desired outcome val/setting to test
+                Outcome_function: Function that determines outcome given self.U and self.V
+                Num_outcomes: Number of outcomes (sometimes there are mutiple outcomes)
+                Fast: T/F whether function should return after finding first satifying assignment
+
+        Note: This checks the original definition of causality from Halpern and Pearl.
+
+        Returns: T/F if X is a causal variable/vector of variables
+
+        """
         ac_1 = self.ac1_check(X,X_indices,outcome_func,outcome_val)
         dict_to_bool = lambda x: False if len(x) == 0 else True
         ac_2 = dict_to_bool(self.Z_and_W_search(X,X_indices,outcome_func,outcome_val,0,num_outcomes,fast))
@@ -302,7 +353,20 @@ class Causal_Model:
         return ac_1 and ac_2 and ac_3
 
     #Returns true if X satisfied the modified defn. (using ac1,ac2(a),ac2(b^u), ac3 - Halpern & Pearl 2005)
-    def updated_causality_check(self,X,X_indices,outcome_val,outcome_func=self.F,num_outcomes,fast):
+    def updated_causality_check(self,X,X_indices,outcome_val,outcome_func,num_outcomes,fast):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Outcome_val: Desired outcome val/setting to test
+                Outcome_function: Function that determines outcome given self.U and self.V
+                Num_outcomes: Number of outcomes (sometimes there are mutiple outcomes)
+                Fast: T/F whether function should return after finding first satifying assignment
+
+        Note: This checks the updated definition of causality (AC1, AC2(a), AC2(b^u), AC3) from Halpern and Pearl.
+
+        Returns: T/F if X is a causal variable/vector of variables
+
+        """
         ac_1 = self.ac1_check(X,X_indices,outcome_func,outcome_val)
         dict_to_bool = lambda x: False if len(x) == 0 else True
         ac_2 = dict_to_bool(self.Z_and_W_search(X,X_indices,outcome_func,outcome_val,1,num_outcomes,fast))
@@ -310,18 +374,40 @@ class Causal_Model:
         self.wrong_check(ac_1,ac_2,ac_3)
         return ac_1 and ac_2 and ac_3
 
-    #Returns true if X satisfies modified defn of Halpern & Pearl 2014 (ac1, ac2_m, ac3)
-    def modified_causality_check(self,X,X_indices,outcome_val,outcome_func=self.F):
+    def modified_causality_check(self,X,X_indices,outcome_val,outcome_func):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Outcome_val: Desired outcome val/setting to test
+                Outcome_function: Function that determines outcome given self.U and self.V
+
+        Note: This checks the modified definition of causality (AC1, AC2_m, AC3) from Halpern and Pearl.
+
+        Returns: T/F if X is a causal variable/vector of variables
+
+        """
         ac_1 = self.ac1_check(X,X_indices,outcome_func,outcome_val)
         ac_2 = self.ac2_m_check(X,X_indices,outcome_func,outcome_val)[2]
         ac_3 = self.ac3_check(X,X_indices,outcome_func,outcome_val)
         self.wrong_check(ac_1,ac_2,ac_3)
         return ac_1 and ac_2 and ac_3
 
-    #Returns "responsibility" as per Chockler & Halpern (2004)
-    # i.e. Calls Z_and_W_search and returns the min_key
-    def responsibility(self,X,X_indices,outcome_val,outcome_func=self.F,num_outcomes,fast):
-        if(self.updated_causality_check(X,X_indices,outcome_val,outcome_func,num_outcomes,fast)):
+    def responsibility(self,X,X_indices,outcome_val,outcome_func,num_outcomes,fast):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Outcome_val: Desired outcome val/setting to test
+                Outcome_function: Function that determines outcome given self.U and self.V
+                Num_outcomes: Number of outcomes (sometimes there are mutiple outcomes)
+                Fast: T/F whether function should return after finding first satifying assignment
+
+        Note: This function returns the Chockler & Halpern (2004) definition of responsibility
+
+        Returns: {1 / (minimum number of changes to make X pivotal + 1), if X is causal
+                  0, o.w. }
+
+        """
+        if(self.causality_check(X,X_indices,outcome_val,outcome_func,num_outcomes,fast)):
             not_X = [not i for i in X]
             if(outcome_func(self.exogenous_var,V_given_set(self.endogenous_var,not_X,X_indices))!=outcome_val):
                 return 1
@@ -333,11 +419,19 @@ class Causal_Model:
             return 0
 
 
-    #num_outcome_var denote var in V which are not part of structural eqn. (e.g. Forest Fire)
-    #Goes through all the possible scenarios of variables values (excluding X)
-    # For each scenario, checks if f(X U Scenario) != f(not X U Scenario)
-    # Returns sum of outcome_changes / num_scenarios
-    def influence(self,X,X_indices,num_outcome_var,outcome_func=self.F):
+    def influence(self,X,X_indices,num_outcome_var,outcome_func):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Num_outcome_var: Number of outcomes (sometimes there are mutiple outcomes)
+                Outcome_function: Function that determines outcome given self.U and self.V
+
+        Note: This function returns the boolean influence of a variable X
+        More Info: https://en.wikipedia.org/wiki/Analysis_of_Boolean_functions#Influence
+
+        Returns: Boolean Influence of X
+
+        """
         U = self.exogenous_var
         end_idx = (-1)*num_outcome_var
         V = self.endogenous_var
@@ -355,18 +449,72 @@ class Causal_Model:
                 outcome_change_ct += 1
         return outcome_change_ct / len(subsets_of_V)
 
-    #Adj responsibility = influence*responsibility
-    def adj_responsibility(self,X,X_indices,num_outcome_var,outcome_val,outcome_func=self.F,fast):
-        inf = self.influence(X,X_indices,num_outcome_var,outcome_func)
-        res = self.responsibility(X,X_indices,outcome_val,outcome_func,num_outcome_var,fast)
+    def new_responsibility(self,X,X_indices,num_outcomes,outcome_val, outcome_func):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Num_outcomes: Number of outcomes (sometimes there are mutiple outcomes)
+                Outcome_val: Desired outcome val/setting to test
+                Outcome_function: Function that determines outcome given self.U and self.V
+
+        Note: This function test a prospective definition of responsibility that we are workshopping.
+
+        Returns: The boolean influence of X conditioned on the event that outcome_function(X) occurs
+
+        """
+        U = self.exogenous_var
+        end_idx = (-1)*num_outcomes
+        V = self.endogenous_var
+        V_indices_no_X = [i for i in range(len(V[:end_idx])) if i not in X_indices]
+        subsets_of_V = subsets_finder(V_indices_no_X)
+        if(len(subsets_of_V) == 0):
+            print("V")
+            return 1
+        outcome_change_ct = 0
+        for subset in subsets_of_V:
+            non_X_var_values = [True if i in subset else False for i in V_indices_no_X]
+            V_scenario = V_given_set(V,non_X_var_values,V_indices_no_X)
+            V_pos_X_scenario = V_given_set(V_scenario,X,X_indices)
+            V_neg_X_scenario = V_given_set(V_scenario,[not i for i in X], X_indices)
+            if(outcome_func(U,V_pos_X_scenario) and X == [False]):
+                outcome_change_ct += 1
+            elif(outcome_func(U,V_neg_X_scenario) and X == [True]):
+                outcome_change_ct += 1
+        return outcome_change_ct / len(subsets_of_V)
+
+
+    def adj_responsibility(self,X,X_indices,num_outcomes,outcome_val,outcome_func,fast):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Num_outcomes: Number of outcomes (sometimes there are mutiple outcomes)
+                Outcome_val: Desired outcome val/setting to test
+                Outcome_function: Function that determines outcome given self.U and self.V
+                Fast: T/F whether function should return after finding first satifying assignment
+
+        Note: This function tests a potential new definition of responsibilty.
+
+        Returns: Boolean_influence(X) * Chockler_Halpern_responsibility(X)
+
+        """
+        inf = self.influence(X,X_indices,num_outcomes,outcome_func)
+        res = self.responsibility(X,X_indices,outcome_val,outcome_func,num_outcomes,fast)
         return inf*res
 
-    #Adj responsibility_2 = sum of influence of var in W that change
-    #If multiple W, computes the above ^ for each W and sums together
-    #Returns 0 if X not Causal
+    def adj_responsibility_2(self,X,X_indices,num_outcome_var,outcome_val,outcome_func,fast):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Num_outcome_var: Number of outcomes (sometimes there are mutiple outcomes)
+                Outcome_val: Desired outcome val/setting to test
+                Outcome_function: Function that determines outcome given self.U and self.V
+                Fast: T/F whether function should return after finding first satifying assignment
 
-    #Changing this to responsibility in every W generated world, using regularization (divide by num_W_generated)
-    def adj_responsibility_2(self,X,X_indices,num_outcome_var,outcome_val,outcome_func=self.F,fast):
+        Note: This function tests a potential new definition of responsibilty.
+
+        Returns: sum of influence of each var in W that change (if X is causal, o.w. = 0 )
+
+        """
         if(self.updated_causality_check(X,X_indices,outcome_val,outcome_func,num_outcome_var,fast)):
             not_X = [not i for i in X]
             if(outcome_func(self.exogenous_var,V_given_set(self.endogenous_var,not_X,X_indices))!=outcome_val):
@@ -382,8 +530,20 @@ class Causal_Model:
         else:
             return 0
 
-    #This function returns adj_2 and zultan at once (to save time)
-    def adj_responsibility_2m(self,X,X_indices,num_outcome_var,outcome_val,outcome_func=self.F,fast):
+    def adj_responsibility_2m(self,X,X_indices,num_outcome_var,outcome_val,outcome_func,fast):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Num_outcome_var: Number of outcomes (sometimes there are mutiple outcomes)
+                Outcome_val: Desired outcome val/setting to test
+                Outcome_function: Function that determines outcome given self.U and self.V
+                Fast: T/F whether function should return after finding first satifying assignment
+
+        Note: This function returns adj_2 and zultan responsibilty at once (to save time/compute)
+
+        Returns: (a,z) where a = adj_2 definition and z = zultan_responsibility
+
+        """
         if(not self.updated_causality_check(X,X_indices,outcome_val,outcome_func,num_outcome_var,True)):
             return (0,0)
 
@@ -407,14 +567,22 @@ class Causal_Model:
                 return (adj_2_outcome, 1 / (N+1))
 
 
-    #Using Multiple Counterfactual Pivotality model from Zultan, Gerstenberg, Lagnado 2012
-    # If there are multiple ways that a variable X can become causal (via but-for) then instead of
-    # using the 1 / (1 + min(changes_to_W)) we will change the denom to (1+N)
-    # N = 1 / (sum of 1/c_i) where c_i is the number of changes to W in "path" i
-    #this iterates over all possible paths where X is pivotal
-    #If X is pivotal : returns 1
-    #Returns 0 if X is not causal
-    def zultan_responsibility(self,X,X_indices,outcome_val,outcome_func= self.F,num_outcome_var):
+    def zultan_responsibility(self,X,X_indices,outcome_val,outcome_func,num_outcome_var):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Outcome_val: Desired outcome val/setting to test
+                Outcome_function: Function that determines outcome given self.U and self.V
+                Num_outcome_var: Number of outcomes (sometimes there are mutiple outcomes)
+
+        Note: This function returns the definition of responsibility from Zultan's paper
+        Link: https://www.ncbi.nlm.nih.gov/pubmed/23855451
+
+        Returns: { 1, X is pivotal
+                    1 / (sum of 1 / c_i where c_i is the number of changes to W in paths to pivotality), X is causality
+                    0, o.w. }
+
+        """
         if(self.causality_check(X,X_indices,outcome_val,outcome_func,num_outcome_var,True)):
             not_X = [not i for i in X]
             if(outcome_func(self.exogenous_var,V_given_set(self.endogenous_var,not_X,X_indices)) != outcome_val):
@@ -426,9 +594,20 @@ class Causal_Model:
             return 1 / (N+1)
         else:
             return 0
-    #Influence function but only samples n states (assuming n >= 1)
-    #Saves time as inf function is exponential ; mc = Monte Carlo method to sample from uniform [0,1]
-    def mc_inf_sample(self,X,X_indices,num_outcome_var,outcome_func=self.F,n):
+
+    def mc_inf_sample(self,X,X_indices,num_outcome_var,outcome_func,n):
+        """
+        Input:  X: List of values of desired variables to test
+                X_indices: List containing indices of X variables in self.V
+                Num_outcome_var: Number of outcomes (sometimes there are mutiple outcomes)
+                Outcome_function: Function that determines outcome given self.U and self.V
+                n: number of samples to take
+
+        Note: This function estimates Boolean influence through Monte Carlo sampling
+
+        Returns: An estimate of Boolean influence over n samples
+
+        """
         if(n <= 0):
             raise ValueError
         V = self.endogenous_var
